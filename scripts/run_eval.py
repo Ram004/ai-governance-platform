@@ -1,0 +1,391 @@
+"""
+run_eval.py - Standalone CLI Guardrail Evaluation Script (OPTIONAL)
+
+╔════════════════════════════════════════════════════════════════════╗
+║  NOTE: This is an OPTIONAL interface for advanced use cases.      ║
+║                                                                    ║
+║  MOST USERS SHOULD USE: databricks_all_in_one notebook instead.   ║
+║                                                                    ║
+║  The notebook provides:                                            ║
+║    ✅ Native Databricks Foundation Model API integration          ║
+║    ✅ Direct Unity Catalog writes (no CSV loading step)           ║
+║    ✅ Human-in-the-loop review workflow                           ║
+║    ✅ Self-contained execution (no environment setup)             ║
+╚════════════════════════════════════════════════════════════════════╝
+
+WHEN TO USE THIS SCRIPT:
+------------------------
+Use this standalone script ONLY if you need one of these patterns:
+
+1. **CI/CD Pipelines** — Automated evaluation in Jenkins, GitHub Actions, etc.
+2. **Local Testing** — Test guardrails on your laptop before deploying to Databricks
+3. **CSV Export** — Output eval_results.csv instead of writing to Unity Catalog
+
+If you don't need these patterns, use the notebook instead.
+
+
+═══════════════════════════════════════════════════════════════════════
+USE CASE 1: CI/CD PIPELINES
+═══════════════════════════════════════════════════════════════════════
+
+Run guardrail evaluations as part of your CI/CD pipeline to catch
+regressions before deploying model changes to production.
+
+**Example: GitHub Actions Workflow**
+
+```yaml
+# .github/workflows/guardrail-eval.yml
+name: LLM Guardrail Evaluation
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays at 2 AM
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          python -m spacy download en_core_web_sm
+      
+      - name: Run guardrail evaluation
+        env:
+          MODEL_ENDPOINT_URL: ${{ secrets.DATABRICKS_ENDPOINT_URL }}
+          MODEL_API_KEY: ${{ secrets.DATABRICKS_TOKEN }}
+        run: python run_eval.py
+      
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: eval-results
+          path: eval_results.csv
+      
+      - name: Check attack success rate
+        run: |
+          # Parse eval_results.csv and fail if attack_success_flag > 30%
+          python scripts/check_success_rate.py eval_results.csv
+```
+
+**Example: Jenkins Pipeline**
+
+```groovy
+pipeline {
+    agent any
+    
+    environment {
+        MODEL_ENDPOINT_URL = credentials('databricks-endpoint-url')
+        MODEL_API_KEY = credentials('databricks-token')
+    }
+    
+    stages {
+        stage('Setup') {
+            steps {
+                sh 'pip install -r requirements.txt'
+                sh 'python -m spacy download en_core_web_sm'
+            }
+        }
+        
+        stage('Run Evaluation') {
+            steps {
+                sh 'python run_eval.py'
+            }
+        }
+        
+        stage('Archive Results') {
+            steps {
+                archiveArtifacts artifacts: 'eval_results.csv', fingerprint: true
+            }
+        }
+    }
+}
+```
+
+
+═══════════════════════════════════════════════════════════════════════
+USE CASE 2: LOCAL TESTING
+═══════════════════════════════════════════════════════════════════════
+
+Test guardrail logic on your local machine before deploying to Databricks.
+Useful for rapid iteration on guardrail.py changes.
+
+**Setup:**
+
+```bash
+# 1. Clone the project
+git clone <your-repo-url>
+cd ai-governance-platform
+
+# 2. Install dependencies (use virtual environment recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+
+# 3. Set environment variables
+export MODEL_ENDPOINT_URL="https://<your-workspace>.cloud.databricks.com/serving-endpoints/<endpoint-name>/invocations"
+export MODEL_API_KEY="dapi..."  # Your Databricks personal access token
+
+# On Windows:
+# set MODEL_ENDPOINT_URL=https://...
+# set MODEL_API_KEY=dapi...
+
+# 4. Run evaluation
+python run_eval.py
+
+# 5. Review results
+open eval_results.csv  # or: code eval_results.csv
+```
+
+**Iterative Testing Workflow:**
+
+1. Edit `guardrails.py` to tweak detection logic
+2. Run `python run_eval.py`
+3. Check `eval_results.csv` to see if changes improved detection
+4. Repeat until satisfied
+5. Commit changes and deploy to Databricks
+
+
+═══════════════════════════════════════════════════════════════════════
+USE CASE 3: CSV EXPORT
+═══════════════════════════════════════════════════════════════════════
+
+Generate eval_results.csv for offline analysis, reporting, or manual
+loading into Unity Catalog.
+
+**Execution:**
+
+```bash
+# Run evaluation
+export MODEL_ENDPOINT_URL="https://..."
+export MODEL_API_KEY="dapi..."
+python run_eval.py
+
+# Output: eval_results.csv (includes _raw_response_for_review column)
+```
+
+**Manual Review Workflow:**
+
+1. Open `eval_results.csv` in Excel/Google Sheets
+2. For each non-control row (is_control = FALSE):
+   - Read the `_raw_response_for_review` column
+   - Fill in `attack_success_flag` (TRUE/FALSE)
+   - Fill in `reviewer_note` (e.g., "Model declined to comply")
+3. Delete the `_raw_response_for_review` column
+4. Save the CSV
+
+**Load into Unity Catalog:**
+
+Option A - Databricks SQL:
+```sql
+COPY INTO ai_governance.risk_assessment.guardrail_evaluations
+FROM '/Volumes/ai_governance/risk_assessment/eval_results/'
+FILEFORMAT = CSV
+FORMAT_OPTIONS ('header' = 'true', 'inferSchema' = 'true');
+```
+
+Option B - Databricks Notebook:
+```python
+df = spark.read.csv(
+    "/Volumes/ai_governance/risk_assessment/eval_results/eval_results.csv",
+    header=True,
+    inferSchema=True
+)
+
+df.write.mode("append").saveAsTable(
+    "ai_governance.risk_assessment.guardrail_evaluations"
+)
+```
+
+
+═══════════════════════════════════════════════════════════════════════
+QUICK START (All Use Cases)
+═══════════════════════════════════════════════════════════════════════
+
+1. Install dependencies:
+   pip install -r requirements.txt
+   python -m spacy download en_core_web_sm
+
+2. Set environment variables:
+   export MODEL_ENDPOINT_URL="https://<workspace>.cloud.databricks.com/serving-endpoints/<endpoint>/invocations"
+   export MODEL_API_KEY="dapi..."  # Your Databricks token
+
+3. Run evaluation:
+   python run_eval.py
+
+4. Output:
+   eval_results.csv (13 rows, includes _raw_response_for_review)
+
+5. Manual review:
+   - Fill in attack_success_flag and reviewer_note
+   - Remove _raw_response_for_review column
+   - Load CSV into Unity Catalog (see Use Case 3 above)
+
+
+═══════════════════════════════════════════════════════════════════════
+ARCHITECTURE: NOTEBOOK VS. SCRIPT
+═══════════════════════════════════════════════════════════════════════
+
+Both interfaces use the same core modules:
+
+  databricks_all_in_one (notebook)       run_eval.py (script)
+           │                                    │
+           ├──────────> guardrails.py <────────┤
+           │                 ▲                  │
+           └──────> test_prompts.csv <─────────┘
+
+Key Differences:
+
+┌────────────────────┬───────────────────────┬──────────────────────┐
+│ Aspect             │ Notebook              │ Script               │
+├────────────────────┼───────────────────────┼──────────────────────┤
+│ Execution Mode     │ Interactive (browser) │ CLI (terminal)       │
+│ Output Destination │ Unity Catalog (Delta) │ CSV file             │
+│ Environment Setup  │ Auto (Databricks)     │ Manual (pip install) │
+│ Review Workflow    │ In-notebook (Cell 17) │ External (Excel)     │
+│ Best For           │ Interactive analysis  │ CI/CD, local dev     │
+└────────────────────┴───────────────────────┴──────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════
+NOTES
+═══════════════════════════════════════════════════════════════════════
+
+**Why Manual Review?**
+
+This script does NOT auto-determine attack_success_flag. That field is
+left empty and filled in by manual review. Automated "did the attack
+succeed" scoring is unreliable and would undermine the credibility of
+the eval; a human reviewing ~13 short transcripts is a trivial amount
+of work and the honest way to do this at this scale.
+
+See PROJECT_SUMMARY.md and INTERVIEW_PREP.md for the rationale.
+
+**Security Note:**
+
+Never commit real API keys. Always read from environment variables as
+shown above. Use CI/CD secrets management for automated pipelines.
+
+"""
+
+import os
+import csv
+import uuid
+from datetime import date
+
+import requests
+
+# Import from ai_governance package (pip-installable)
+# If not pip-installed yet, add parent directory to path
+import sys
+from pathlib import Path
+
+# Add project root to path (one level up from scripts/)
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from ai_governance import run_guardrails
+
+# ------------------------------------------------------------------
+# Model call -- fill this in for your chosen endpoint.
+# ------------------------------------------------------------------
+MODEL_ENDPOINT = os.environ.get("MODEL_ENDPOINT_URL", "")
+MODEL_API_KEY = os.environ.get("MODEL_API_KEY", "")
+
+
+def call_model(prompt: str) -> str:
+    """
+    Replace this with your actual endpoint call. Example shape for an
+    OpenAI-compatible chat completions endpoint (works for Databricks
+    Foundation Model APIs too, which follow the same schema):
+    """
+    if not MODEL_ENDPOINT or not MODEL_API_KEY:
+        raise RuntimeError(
+            "Set MODEL_ENDPOINT_URL and MODEL_API_KEY environment variables "
+            "before running -- see the comment above call_model()."
+        )
+    response = requests.post(
+        MODEL_ENDPOINT,
+        headers={"Authorization": f"Bearer {MODEL_API_KEY}"},
+        json={
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 300,
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"]
+
+
+def load_test_prompts(path=None):
+    """Load test prompts from CSV file in data/ folder."""
+    if path is None:
+        # Default to data/test_prompts.csv relative to project root
+        project_root = Path(__file__).parent.parent
+        path = project_root / "data" / "test_prompts.csv"
+    with open(path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def run():
+    prompts = load_test_prompts()
+    rows = []
+
+    for p in prompts:
+        test_id = p["test_id"]
+        owasp_category = p["owasp_category"]
+        prompt_text = p["prompt"]
+
+        # -- Guardrails-off pass: send the raw prompt straight to the model
+        raw_response = call_model(prompt_text)
+
+        # -- Guardrails-on pass: apply input checks, then (if not blocked
+        # at input) send the (possibly redacted) prompt, then check output
+        gr = run_guardrails(prompt_text, raw_response)
+
+        rows.append({
+            "eval_id": str(uuid.uuid4())[:8],
+            "use_case_id": "",
+            "test_id": test_id,
+            "owasp_category": owasp_category,
+            "guardrail_stage": "input_and_output",
+            "guardrail_triggered": gr["triggered"],
+            "guardrail_reasons": gr["reasons"],
+            "model_response_blocked": gr["blocked"],
+            "attack_success_flag": "",  # left for manual review
+            "reviewer_note": "",        # fill in after reading raw_response
+            "evaluated_date": date.today().isoformat(),
+            "_raw_response_for_review": raw_response,  # not in the Delta
+                                                         # schema -- strip
+                                                         # before loading,
+                                                         # kept here so you
+                                                         # have the
+                                                         # transcript to
+                                                         # review manually
+        })
+
+    with open("eval_results.csv", "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"Wrote {len(rows)} results to eval_results.csv")
+    print("Next: open eval_results.csv, read each _raw_response_for_review,")
+    print("fill in attack_success_flag (TRUE/FALSE) and reviewer_note for")
+    print("non-control rows, then drop the _raw_response_for_review column")
+    print("before loading into risk_assessment.guardrail_evaluations.")
+
+
+if __name__ == "__main__":
+    run()

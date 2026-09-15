@@ -1,0 +1,23 @@
+# Code Owners for AI Governance Platform
+# These owners will be automatically requested for review when PRs touch these files
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repo
+* @ram.purmessur
+
+# Guardrails module - requires security review
+/ai_governance/guardrails.py @ram.purmessur
+
+# SQL schema and table definitions - requires data architecture review
+/sql/ @ram.purmessur
+
+# Test data and evaluation harness
+/data/test_prompts.csv @ram.purmessur
+/notebooks/ai_guardrail_evaluation.py @ram.purmessur
+
+# CI/CD workflows
+/.github/ @ram.purmessur
+
+# Documentation
+/docs/ @ram.purmessur
+/README.md @ram.purmessur

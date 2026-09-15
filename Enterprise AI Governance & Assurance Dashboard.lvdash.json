@@ -1,0 +1,1068 @@
+{
+  "datasets": [
+    {
+      "name": "4fe8066e",
+      "displayName": "Portfolio overview",
+      "queryLines": [
+        "SELECT\r\n",
+        "    u.use_case_id,\r\n",
+        "    u.org_name,\r\n",
+        "    u.industry,\r\n",
+        "    u.ai_technique,\r\n",
+        "    u.disclosure_type,\r\n",
+        "    ROUND(AVG(r.score_1_5), 1) AS avg_risk_score,\r\n",
+        "    MAX(r.score_1_5) AS highest_dimension_score\r\n",
+        "FROM use_case_inventory.ai_use_cases u\r\n",
+        "JOIN risk_assessment.risk_scores r ON u.use_case_id = r.use_case_id\r\n",
+        "GROUP BY u.use_case_id, u.org_name, u.industry, u.ai_technique, u.disclosure_type\r\n",
+        "ORDER BY avg_risk_score DESC;"
+      ],
+      "catalog": "ai_governance",
+      "schema": "default"
+    },
+    {
+      "name": "896cdb39",
+      "displayName": "Risk distribution by dimension",
+      "queryLines": [
+        "SELECT\r\n",
+        "    dimension,\r\n",
+        "    ROUND(AVG(score_1_5), 1) AS avg_score,\r\n",
+        "    MIN(score_1_5) AS min_score,\r\n",
+        "    MAX(score_1_5) AS max_score,\r\n",
+        "    SUM(CASE WHEN risk_data_source = 'disclosed' THEN 1 ELSE 0 END) AS disclosed_count,\r\n",
+        "    SUM(CASE WHEN risk_data_source = 'inferred_by_assessor' THEN 1 ELSE 0 END) AS inferred_count\r\n",
+        "FROM risk_assessment.risk_scores\r\n",
+        "GROUP BY dimension\r\n",
+        "ORDER BY avg_score DESC;"
+      ],
+      "catalog": "ai_governance",
+      "schema": "default"
+    },
+    {
+      "name": "4faa9dae",
+      "displayName": "Control implementation coverage",
+      "queryLines": [
+        "SELECT\r\n",
+        "    use_case_id,\r\n",
+        "    COUNT(*) AS total_controls_assessed,\r\n",
+        "    SUM(CASE WHEN implementation_status = 'implemented' THEN 1 ELSE 0 END) AS implemented,\r\n",
+        "    SUM(CASE WHEN implementation_status = 'partial' THEN 1 ELSE 0 END) AS partial,\r\n",
+        "    SUM(CASE WHEN implementation_status = 'not_implemented' THEN 1 ELSE 0 END) AS not_implemented,\r\n",
+        "    ROUND(\r\n",
+        "        SUM(CASE WHEN implementation_status = 'implemented' THEN 1 ELSE 0 END) * 100.0\r\n",
+        "        / NULLIF(SUM(CASE WHEN implementation_status != 'not_applicable' THEN 1 ELSE 0 END), 0), 0\r\n",
+        "    ) AS pct_implemented\r\n",
+        "FROM controls.use_case_controls\r\n",
+        "GROUP BY use_case_id\r\n",
+        "ORDER BY pct_implemented ASC;\r\n"
+      ],
+      "catalog": "ai_governance",
+      "schema": "default"
+    },
+    {
+      "name": "700aba2d",
+      "displayName": "ISO 42001 maturity heat map",
+      "queryLines": [
+        "SELECT\r\n",
+        "    use_case_id,\r\n",
+        "    domain,\r\n",
+        "    maturity_score_0_4\r\n",
+        "FROM readiness.iso42001_maturity\r\n",
+        "ORDER BY use_case_id, domain;"
+      ],
+      "catalog": "ai_governance",
+      "schema": "default"
+    },
+    {
+      "name": "c3834dcd",
+      "displayName": "Open risk register -- inherent vs residual rating",
+      "queryLines": [
+        "SELECT\r\n",
+        "    risk_id,\r\n",
+        "    use_case_id,\r\n",
+        "    dimension,\r\n",
+        "    inherent_rating,\r\n",
+        "    residual_rating,\r\n",
+        "    mitigation_action,\r\n",
+        "    review_date\r\n",
+        "FROM risk_register.risks\r\n",
+        "ORDER BY\r\n",
+        "    CASE inherent_rating WHEN 'Critical' THEN 4 WHEN 'High' THEN 3 WHEN 'Medium' THEN 2 ELSE 1 END DESC;"
+      ],
+      "catalog": "ai_governance",
+      "schema": "default"
+    },
+    {
+      "name": "f8078d63",
+      "displayName": "Source quality mix",
+      "queryLines": [
+        "SELECT\r\n",
+        "    disclosure_type,\r\n",
+        "    COUNT(*) AS use_case_count\r\n",
+        "FROM use_case_inventory.ai_use_cases\r\n",
+        "GROUP BY disclosure_type\r\n",
+        "ORDER BY use_case_count DESC;"
+      ],
+      "catalog": "ai_governance",
+      "schema": "default"
+    },
+    {
+      "name": "45bf277f",
+      "displayName": "Guardrail Test Results by OWASP Category",
+      "queryLines": [
+        "SELECT\r\n",
+        "    owasp_category,\r\n",
+        "    COUNT(*) AS total_tests,\r\n",
+        "    SUM(CASE WHEN guardrail_triggered THEN 1 ELSE 0 END) AS guardrail_fired,\r\n",
+        "    SUM(CASE WHEN model_response_blocked THEN 1 ELSE 0 END) AS blocked\r\n",
+        "FROM ai_governance.risk_assessment.guardrail_evaluations\r\n",
+        "GROUP BY owasp_category\r\n",
+        "ORDER BY owasp_category"
+      ]
+    },
+    {
+      "name": "eaaa2dd9",
+      "displayName": "Enterprise AI Governance KPIs",
+      "queryLines": [
+        "SELECT\r\n",
+        "    /* Risk Assessment KPIs */\r\n",
+        "    COUNT(DISTINCT rs.use_case_id) AS ai_systems_assessed,\r\n",
+        "    COUNT(rs.score_id) AS risk_assessments_completed,\r\n",
+        "    ROUND(AVG(rs.score_1_5), 2) AS avg_portfolio_risk_score,\r\n",
+        "\r\n",
+        "    /* Assurance KPIs */\r\n",
+        "    (\r\n",
+        "        SELECT ROUND(\r\n",
+        "            100 *\r\n",
+        "            SUM(\r\n",
+        "                CASE\r\n",
+        "                    WHEN attack_success_flag = FALSE\r\n",
+        "                         AND owasp_category <> 'control'\r\n",
+        "                    THEN 1\r\n",
+        "                    ELSE 0\r\n",
+        "                END\r\n",
+        "            )\r\n",
+        "            /\r\n",
+        "            SUM(\r\n",
+        "                CASE\r\n",
+        "                    WHEN owasp_category <> 'control'\r\n",
+        "                    THEN 1\r\n",
+        "                    ELSE 0\r\n",
+        "                END\r\n",
+        "            ),\r\n",
+        "            1\r\n",
+        "        )\r\n",
+        "        FROM ai_governance.risk_assessment.guardrail_evaluations\r\n",
+        "    ) AS control_effectiveness_pct,\r\n",
+        "\r\n",
+        "    (\r\n",
+        "        SELECT COUNT(*)\r\n",
+        "        FROM ai_governance.risk_assessment.guardrail_evaluations\r\n",
+        "        WHERE attack_success_flag = TRUE\r\n",
+        "    ) AS control_failures,\r\n",
+        "\r\n",
+        "    (\r\n",
+        "        SELECT COUNT(DISTINCT owasp_category)\r\n",
+        "        FROM ai_governance.risk_assessment.guardrail_evaluations\r\n",
+        "        WHERE owasp_category <> 'control'\r\n",
+        "    ) AS owasp_categories_covered\r\n",
+        "\r\n",
+        "FROM ai_governance.risk_assessment.risk_scores rs;"
+      ],
+      "catalog": "ai_governance",
+      "schema": "risk_assessment"
+    },
+    {
+      "name": "cf2d39be",
+      "displayName": "AI Assurance Metrics",
+      "queryLines": [
+        "SELECT\r\n",
+        "    SUM(\r\n",
+        "        CASE\r\n",
+        "            WHEN attack_success_flag = FALSE\r\n",
+        "                 AND owasp_category <> 'control'\r\n",
+        "            THEN 1\r\n",
+        "            ELSE 0\r\n",
+        "        END\r\n",
+        "    ) AS controls_effective,\r\n",
+        "\r\n",
+        "    SUM(\r\n",
+        "        CASE\r\n",
+        "            WHEN attack_success_flag = TRUE\r\n",
+        "            THEN 1\r\n",
+        "            ELSE 0\r\n",
+        "        END\r\n",
+        "    ) AS control_failures,\r\n",
+        "\r\n",
+        "    SUM(\r\n",
+        "        CASE\r\n",
+        "            WHEN owasp_category <> 'control'\r\n",
+        "            THEN 1\r\n",
+        "            ELSE 0\r\n",
+        "        END\r\n",
+        "    ) AS adversarial_tests,\r\n",
+        "\r\n",
+        "    SUM(\r\n",
+        "        CASE\r\n",
+        "            WHEN owasp_category = 'control'\r\n",
+        "            THEN 1\r\n",
+        "            ELSE 0\r\n",
+        "        END\r\n",
+        "    ) AS control_tests,\r\n",
+        "\r\n",
+        "    ROUND(\r\n",
+        "        100 *\r\n",
+        "        SUM(\r\n",
+        "            CASE\r\n",
+        "                WHEN attack_success_flag = FALSE\r\n",
+        "                     AND owasp_category <> 'control'\r\n",
+        "                THEN 1\r\n",
+        "                ELSE 0\r\n",
+        "            END\r\n",
+        "        )\r\n",
+        "        /\r\n",
+        "        SUM(\r\n",
+        "            CASE\r\n",
+        "                WHEN owasp_category <> 'control'\r\n",
+        "                THEN 1\r\n",
+        "                ELSE 0\r\n",
+        "            END\r\n",
+        "        ),\r\n",
+        "        1\r\n",
+        "    ) AS control_effectiveness_pct,\r\n",
+        "\r\n",
+        "    ROUND(\r\n",
+        "        100 *\r\n",
+        "        SUM(\r\n",
+        "            CASE\r\n",
+        "                WHEN attack_success_flag = TRUE\r\n",
+        "                THEN 1\r\n",
+        "                ELSE 0\r\n",
+        "            END\r\n",
+        "        )\r\n",
+        "        /\r\n",
+        "        SUM(\r\n",
+        "            CASE\r\n",
+        "                WHEN owasp_category <> 'control'\r\n",
+        "                THEN 1\r\n",
+        "                ELSE 0\r\n",
+        "            END\r\n",
+        "        ),\r\n",
+        "        1\r\n",
+        "    ) AS attack_success_rate_pct\r\n",
+        "\r\n",
+        "FROM ai_governance.risk_assessment.guardrail_evaluations;"
+      ]
+    },
+    {
+      "name": "b66185e1",
+      "displayName": "Governance Framework Traceability Matrix Show more lines",
+      "queryLines": [
+        "SELECT DISTINCT\r\n",
+        "    owasp_category,\r\n",
+        "    nist_control,\r\n",
+        "    iso_control,\r\n",
+        "    privacy_framework\r\n",
+        "FROM ai_governance.risk_assessment.guardrail_evaluations\r\n",
+        "WHERE owasp_category <> 'control'\r\n",
+        "ORDER BY owasp_category;"
+      ]
+    },
+    {
+      "name": "e01cb692",
+      "displayName": "AI Governance Assurance Summary",
+      "queryLines": [
+        "SELECT CONCAT(\r\n",
+        "    ROUND(\r\n",
+        "        100 *\r\n",
+        "        SUM(\r\n",
+        "            CASE\r\n",
+        "                WHEN attack_success_flag = FALSE\r\n",
+        "                     AND owasp_category <> 'control'\r\n",
+        "                THEN 1\r\n",
+        "                ELSE 0\r\n",
+        "            END\r\n",
+        "        )\r\n",
+        "        /\r\n",
+        "        SUM(\r\n",
+        "            CASE\r\n",
+        "                WHEN owasp_category <> 'control'\r\n",
+        "                THEN 1\r\n",
+        "                ELSE 0\r\n",
+        "            END\r\n",
+        "        ),\r\n",
+        "        1\r\n",
+        "    ),\r\n",
+        "    '%'\r\n",
+        ") AS control_effectiveness\r\n",
+        "FROM ai_governance.risk_assessment.guardrail_evaluations;"
+      ]
+    }
+  ],
+  "relationshipGraphs": [
+    {
+      "sources": [
+        {
+          "name": "Portfolio_overview",
+          "datasetName": "4fe8066e"
+        },
+        {
+          "name": "Risk_distribution_by_dimension",
+          "datasetName": "896cdb39"
+        },
+        {
+          "name": "Control_implementation_coverage",
+          "datasetName": "4faa9dae"
+        },
+        {
+          "name": "ISO_42001_maturity_heat_map",
+          "datasetName": "700aba2d"
+        },
+        {
+          "name": "Open_risk_register__inherent_vs_residual_rating",
+          "datasetName": "c3834dcd"
+        },
+        {
+          "name": "Source_quality_mix",
+          "datasetName": "f8078d63"
+        },
+        {
+          "name": "Guardrail_Test_Results_by_OWASP_Category",
+          "datasetName": "45bf277f"
+        },
+        {
+          "name": "Enterprise_AI_Governance_KPIs",
+          "datasetName": "eaaa2dd9"
+        },
+        {
+          "name": "AI_Assurance_Metrics",
+          "datasetName": "cf2d39be"
+        },
+        {
+          "name": "Governance_Framework_Traceability_Matrix_Show_more_lines",
+          "datasetName": "b66185e1"
+        },
+        {
+          "name": "Untitled_dataset",
+          "datasetName": "e01cb692"
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "056290be",
+      "displayName": "Enterprise AI Governance & Assurance Dashboard",
+      "layout": [
+        {
+          "widget": {
+            "name": "portfolio-overview",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Portfolio_overview__industry",
+                      "expression": "`Portfolio_overview`.`industry`"
+                    },
+                    {
+                      "name": "Portfolio_overview__use_case_id",
+                      "expression": "`Portfolio_overview`.`use_case_id`"
+                    },
+                    {
+                      "name": "Portfolio_overview__org_name",
+                      "expression": "`Portfolio_overview`.`org_name`"
+                    },
+                    {
+                      "name": "Portfolio_overview__avg_risk_score",
+                      "expression": "`Portfolio_overview`.`avg_risk_score`"
+                    },
+                    {
+                      "name": "Portfolio_overview__highest_dimension_score",
+                      "expression": "`Portfolio_overview`.`highest_dimension_score`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "showDescription": false,
+                "headerAlignment": "center",
+                "title": {
+                  "value": "## <span style=\"font-weight:700\">AI Use Case Portfolio Risk Overview</span>",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "Portfolio_overview__avg_risk_score",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "Portfolio_overview__org_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "Portfolio_overview__industry",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Government",
+                        "color": "#681D16"
+                      }
+                    ]
+                  }
+                },
+                "label": {
+                  "show": true
+                },
+                "extra": [
+                  {
+                    "fieldName": "Portfolio_overview__use_case_id"
+                  },
+                  {
+                    "fieldName": "Portfolio_overview__org_name"
+                  },
+                  {
+                    "fieldName": "Portfolio_overview__avg_risk_score"
+                  },
+                  {
+                    "fieldName": "Portfolio_overview__highest_dimension_score"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 8,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "risk-distribution-by-dimension",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Risk_distribution_by_dimension__dimension",
+                      "expression": "`Risk_distribution_by_dimension`.`dimension`"
+                    },
+                    {
+                      "name": "Risk_distribution_by_dimension__avg_score",
+                      "expression": "`Risk_distribution_by_dimension`.`avg_score`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "## <span style=\"text-align:center;display:block\">Risk Distribution <span style=\"font-weight: 700;\">by </span>Governance Dimension</span>",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  }
+                ]
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "Risk_distribution_by_dimension__dimension",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "Risk_distribution_by_dimension__avg_score",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "control-implementation-coverage",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Control_implementation_coverage__use_case_id",
+                      "expression": "`Control_implementation_coverage`.`use_case_id`"
+                    },
+                    {
+                      "name": "sum(Control_implementation_coverage__implemented)",
+                      "expression": "SUM(`Control_implementation_coverage`.`implemented`)"
+                    },
+                    {
+                      "name": "sum(Control_implementation_coverage__partial)",
+                      "expression": "SUM(`Control_implementation_coverage`.`partial`)"
+                    },
+                    {
+                      "name": "sum(Control_implementation_coverage__not_implemented)",
+                      "expression": "SUM(`Control_implementation_coverage`.`not_implemented`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "## <span style=\"text-align:center;display:block\"><span style=\"font-weight:700\">Control Implementation Coverage by Use Case</span></span>",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  null,
+                  "#80332B"
+                ]
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "Control_implementation_coverage__use_case_id",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(Control_implementation_coverage__implemented)"
+                    },
+                    {
+                      "fieldName": "sum(Control_implementation_coverage__partial)"
+                    },
+                    {
+                      "fieldName": "sum(Control_implementation_coverage__not_implemented)"
+                    }
+                  ]
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "iso-42001-maturity-heat-map",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "ISO_42001_maturity_heat_map__maturity_score_0_4",
+                      "expression": "`ISO_42001_maturity_heat_map`.`maturity_score_0_4`"
+                    },
+                    {
+                      "name": "ISO_42001_maturity_heat_map__domain",
+                      "expression": "`ISO_42001_maturity_heat_map`.`domain`"
+                    },
+                    {
+                      "name": "ISO_42001_maturity_heat_map__use_case_id",
+                      "expression": "`ISO_42001_maturity_heat_map`.`use_case_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "showDescription": true,
+                "title": {
+                  "value": "## <span style=\"text-align:center;display:block\"><span style=\"font-weight:700\">ISO 42001 Maturity Assessment</span></span>",
+                  "fields": []
+                },
+                "description": {
+                  "value": "<span style=\"font-size: 18px;\">Provides a governance maturity assessment aligned to ISO/IEC 42001 AI management system requirements.</span>",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "heatmap",
+              "encodings": {
+                "x": {
+                  "fieldName": "ISO_42001_maturity_heat_map__domain",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "ISO_42001_maturity_heat_map__use_case_id",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "ISO_42001_maturity_heat_map__maturity_score_0_4",
+                  "scale": {
+                    "type": "quantitative",
+                    "domain": {
+                      "min": 0,
+                      "max": 4
+                    },
+                    "reverse": false,
+                    "colorRamp": {
+                      "mode": "scheme",
+                      "scheme": "blues"
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "open-risk-register",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Open_risk_register__inherent_vs_residual_rating__risk_id",
+                      "expression": "`Open_risk_register__inherent_vs_residual_rating`.`risk_id`"
+                    },
+                    {
+                      "name": "Open_risk_register__inherent_vs_residual_rating__use_case_id",
+                      "expression": "`Open_risk_register__inherent_vs_residual_rating`.`use_case_id`"
+                    },
+                    {
+                      "name": "Open_risk_register__inherent_vs_residual_rating__dimension",
+                      "expression": "`Open_risk_register__inherent_vs_residual_rating`.`dimension`"
+                    },
+                    {
+                      "name": "Open_risk_register__inherent_vs_residual_rating__inherent_rating",
+                      "expression": "`Open_risk_register__inherent_vs_residual_rating`.`inherent_rating`"
+                    },
+                    {
+                      "name": "Open_risk_register__inherent_vs_residual_rating__residual_rating",
+                      "expression": "`Open_risk_register__inherent_vs_residual_rating`.`residual_rating`"
+                    },
+                    {
+                      "name": "Open_risk_register__inherent_vs_residual_rating__mitigation_action",
+                      "expression": "`Open_risk_register__inherent_vs_residual_rating`.`mitigation_action`"
+                    },
+                    {
+                      "name": "Open_risk_register__inherent_vs_residual_rating__review_date",
+                      "expression": "`Open_risk_register__inherent_vs_residual_rating`.`review_date`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "## <span style=\"text-align:center;display:block\"><span style=\"font-weight:700\">AI Risk Register</span></span>",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "Open_risk_register__inherent_vs_residual_rating__risk_id"
+                  },
+                  {
+                    "fieldName": "Open_risk_register__inherent_vs_residual_rating__use_case_id"
+                  },
+                  {
+                    "fieldName": "Open_risk_register__inherent_vs_residual_rating__dimension"
+                  },
+                  {
+                    "fieldName": "Open_risk_register__inherent_vs_residual_rating__inherent_rating"
+                  },
+                  {
+                    "fieldName": "Open_risk_register__inherent_vs_residual_rating__residual_rating"
+                  },
+                  {
+                    "fieldName": "Open_risk_register__inherent_vs_residual_rating__mitigation_action"
+                  },
+                  {
+                    "fieldName": "Open_risk_register__inherent_vs_residual_rating__review_date"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 17,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "source-quality",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "sum(Source_quality_mix__use_case_count)",
+                      "expression": "SUM(`Source_quality_mix`.`use_case_count`)"
+                    },
+                    {
+                      "name": "Source_quality_mix__disclosure_type",
+                      "expression": "`Source_quality_mix`.`disclosure_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "## <span style=\"text-align:center;display:block;\">Evidence Source Quality Assessment</span>",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "sum(Source_quality_mix__use_case_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "Source_quality_mix__disclosure_type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 23,
+            "width": 6,
+            "height": 13
+          }
+        },
+        {
+          "widget": {
+            "name": "guardrail-test-results-owasp-category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Guardrail_Test_Results_by_OWASP_Category__owasp_category",
+                      "expression": "`Guardrail_Test_Results_by_OWASP_Category`.`owasp_category`"
+                    },
+                    {
+                      "name": "sum(Guardrail_Test_Results_by_OWASP_Category__total_tests)",
+                      "expression": "SUM(`Guardrail_Test_Results_by_OWASP_Category`.`total_tests`)"
+                    },
+                    {
+                      "name": "sum(Guardrail_Test_Results_by_OWASP_Category__guardrail_fired)",
+                      "expression": "SUM(`Guardrail_Test_Results_by_OWASP_Category`.`guardrail_fired`)"
+                    },
+                    {
+                      "name": "sum(Guardrail_Test_Results_by_OWASP_Category__blocked)",
+                      "expression": "SUM(`Guardrail_Test_Results_by_OWASP_Category`.`blocked`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "## <span style=\"text-align:center;display:block\"><span style=\"font-size: 18px;font-weight: 700;\">AI Assurance Results by OWASP Category</span></span>",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "Guardrail_Test_Results_by_OWASP_Category__owasp_category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(Guardrail_Test_Results_by_OWASP_Category__total_tests)"
+                    },
+                    {
+                      "fieldName": "sum(Guardrail_Test_Results_by_OWASP_Category__guardrail_fired)"
+                    },
+                    {
+                      "fieldName": "sum(Guardrail_Test_Results_by_OWASP_Category__blocked)"
+                    }
+                  ]
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 29,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "governance-framework-traceability-matrix",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Governance_Framework_Traceability_Matrix_Show_more_lines__owasp_category",
+                      "expression": "`Governance_Framework_Traceability_Matrix_Show_more_lines`.`owasp_category`"
+                    },
+                    {
+                      "name": "Governance_Framework_Traceability_Matrix_Show_more_lines__nist_control",
+                      "expression": "`Governance_Framework_Traceability_Matrix_Show_more_lines`.`nist_control`"
+                    },
+                    {
+                      "name": "Governance_Framework_Traceability_Matrix_Show_more_lines__iso_control",
+                      "expression": "`Governance_Framework_Traceability_Matrix_Show_more_lines`.`iso_control`"
+                    },
+                    {
+                      "name": "Governance_Framework_Traceability_Matrix_Show_more_lines__privacy_framework",
+                      "expression": "`Governance_Framework_Traceability_Matrix_Show_more_lines`.`privacy_framework`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "## <span style=\"text-align:center;display:block;\"><span style=\"font-weight: 700;\">Governance Framework Traceability Matrix</span></span>",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "Governance_Framework_Traceability_Matrix_Show_more_lines__owasp_category"
+                  },
+                  {
+                    "fieldName": "Governance_Framework_Traceability_Matrix_Show_more_lines__nist_control"
+                  },
+                  {
+                    "fieldName": "Governance_Framework_Traceability_Matrix_Show_more_lines__iso_control"
+                  },
+                  {
+                    "fieldName": "Governance_Framework_Traceability_Matrix_Show_more_lines__privacy_framework"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "control-effectiveness",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "Untitled_dataset__control_effectiveness",
+                      "expression": "`Untitled_dataset`.`control_effectiveness`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "showDescription": true,
+                "title": {
+                  "value": "## <span style=\"text-align:center;display:block\"><span style=\"font-weight: 700;font-size: 24px;\">Control Effectiveness</span></span>",
+                  "fields": []
+                },
+                "description": {
+                  "value": "<span style=\"text-align:center;display:block;\"><span style=\"font-size:18px\">Primary assurance metric measuring the proportion of adversarial scenarios successfully resisted by the AI Governance Assurance Framework.</span></span>",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "Untitled_dataset__control_effectiveness"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 23,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "a09ca3bb",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "971fce8b",
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {},
+              "frame": {
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}

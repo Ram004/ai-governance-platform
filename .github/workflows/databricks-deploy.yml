@@ -1,0 +1,30 @@
+name: Deploy to Databricks
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    # TODO: Add deployment steps here
+    # Recommended approach: Use Databricks Asset Bundles (DABs)
+    # or Databricks GitHub Actions: https://github.com/databricks/setup-cli
+    
+    - name: Placeholder - Configure deployment
+      run: |
+        echo "Configure Databricks deployment using:"
+        echo "1. Databricks Asset Bundles (recommended)"
+        echo "2. Databricks GitHub Actions"
+        echo "3. Terraform with Databricks provider"
