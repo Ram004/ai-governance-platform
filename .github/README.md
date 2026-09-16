@@ -1,189 +1,394 @@
-# GitHub Workflows & Repository Configuration
+# Enterprise AI Governance & Assurance Platform
 
-This directory contains GitHub configuration, governance workflows, and repository automation supporting the Enterprise AI Governance & Assurance Platform.
+<img width="1727" height="855" alt="enterprise_ai_dashboard" src="https://github.com/user-attachments/assets/64172ed4-c80d-44a5-af3c-45c38934385f" />
 
-The configuration demonstrates governance-oriented development practices including code review requirements, dependency management, automated validation, and change tracking.
 
----
+A Unity Catalog-native AI Governance & Assurance Platform built on Databricks that assesses real-world AI systems against leading governance, risk, assurance, and privacy frameworks.
 
-## Repository Governance Components
+The platform evaluates **25 publicly cited AI systems across 8 sectors** and demonstrates how governance requirements can be translated into measurable controls, assurance testing, accountability structures, and risk reporting.
 
-### Continuous Integration (`ci.yml`)
+Framework coverage includes:
 
-Provides automated validation of repository changes.
+- ISO/IEC 42001
+- NIST AI Risk Management Framework (AI RMF)
+- Australian Privacy Principles (APPs)
+- OWASP Top 10 for LLM Applications (2025)
 
-**Capabilities:**
-
-- Unit testing
-- Linting
-- Code quality checks
-- Coverage reporting
-
-**Triggers:**
-
-- Push to `main`
-- Push to `develop`
-- Pull requests
+The project combines AI Governance, Responsible AI, AI Risk Management, AI Assurance, and Data Governance into a single governance-oriented analytics platform.
 
 ---
 
-### Dependency Governance (`dependabot.yml`)
+# Platform Highlights
 
-Provides automated monitoring and updating of project dependencies.
-
-**Capabilities:**
-
-- Weekly dependency reviews
-- Python package update monitoring
-- GitHub Actions update monitoring
-- Security update notifications
-- Automated update grouping
-
----
-
-### Code Ownership (`CODEOWNERS`)
-
-Defines governance responsibilities for repository assets and enables structured review processes for changes impacting assurance logic, governance controls, and SQL assets.
-
-**Examples:**
-
-- Guardrail evaluation logic requires review
-- SQL assets require review
-- Governance documentation changes can be assigned to designated reviewers
+| Metric | Value |
+|----------|----------|
+| AI Systems Assessed | 25 |
+| Industry Sectors | 8 |
+| Risk Scores Generated | 150 |
+| Governance Controls Evaluated | 20 |
+| Control-to-Use Case Mappings | 500 |
+| Risk Register Entries | 25 |
+| ISO 42001 Maturity Assessments | 20 |
+| Stewardship Assignments | 6 |
+| Assurance Test Prompts | 30 |
+| OWASP Coverage | 10 / 10 Categories |
 
 ---
 
-### Pull Request Governance (`PULL_REQUEST_TEMPLATE.md`)
+# Problem Statement
 
-Standardizes change reviews through a structured governance process.
+As organizations deploy AI across critical business functions, governance teams face increasing challenges in:
 
-**Required elements:**
+- Identifying AI-related risks
+- Demonstrating regulatory compliance
+- Validating AI controls
+- Tracking accountability
+- Producing audit-ready evidence
+- Measuring the effectiveness of governance controls
 
-- Description of changes
-- Testing evidence
-- Governance impact assessment
-- Security considerations
-- Review checklist
-- Validation steps
+Many governance programs focus on documentation and policy creation but lack measurable assurance outcomes.
 
----
-
-## Why These Files Matter
-
-The platform focuses on governance, assurance, and accountability.
-
-The GitHub configuration demonstrates governance practices such as:
-
-- Change management
-- Structured reviews
-- Traceability
-- Auditability
-- Automated validation
-- Dependency monitoring
-
-These practices complement the governance controls, assurance testing, and framework mappings implemented throughout the platform.
+This project demonstrates how governance frameworks can be operationalized using structured datasets, governance controls, assurance testing, and measurable performance indicators.
 
 ---
 
-## Recommended Repository Setup
+# Governance Framework Traceability
 
-### Enable GitHub Actions
+<img width="1069" height="750" alt="framework_traceability" src="https://github.com/user-attachments/assets/7777b52c-fb8e-4472-a522-786ff8aa34eb" />
 
-Navigate to:
+
+One of the platform's core capabilities is governance traceability.
+
+The platform creates evidence-based mappings between:
 
 ```text
-Settings
-    ↓
-Actions
-    ↓
-General
+OWASP Top 10 Risks
+        ↓
+NIST AI RMF Controls
+        ↓
+ISO/IEC 42001 Controls
+        ↓
+Privacy Framework Controls
+        ↓
+Assurance Results
 ```
 
-Enable:
-
-```text
-Allow all actions and reusable workflows
-```
+This enables technical control validation to be linked directly to governance and compliance obligations.
 
 ---
 
-### Configure Branch Protection
+# AI Assurance Framework
 
-Recommended settings for the `main` branch:
+The platform includes a practical AI Assurance Framework aligned with the OWASP Top 10 for LLM Applications (2025).
 
-- Require pull request reviews
-- Require status checks to pass
-- Require conversation resolution before merge
-- Restrict direct commits to the main branch
+Governance controls are validated through adversarial testing and manual assurance review.
 
----
+## Five-Layer AI Control Architecture
 
-### Configure Dependabot
+### Layer 1 — Input Privacy Controls
 
-Dependabot should be enabled to:
+- PII detection
+- Sensitive data identification
+- Presidio-based privacy controls
+- Data redaction
 
-- Monitor dependency updates
-- Track security advisories
-- Generate update pull requests
-- Improve supply-chain governance
+### Layer 2 — Prompt Injection Controls
 
----
+- Prompt injection detection
+- Adversarial prompt identification
+- Heuristic pattern matching
+- Rule-based validation
 
-## Local Validation
+### Layer 3 — Resource Protection Controls
 
-Before pushing changes, run:
+- Token limits
+- Character limits
+- Resource consumption controls
+- Abuse prevention safeguards
 
-```bash
-# Run tests
-pytest tests/ -v
+### Layer 4 — Output Safety Controls
 
-# Lint code
-flake8 .
+- Content moderation
+- Toxicity detection
+- Harmful content classification
+- Safety validation
 
-# Check repository status
-git status
-```
+### Layer 5 — Output Privacy Controls
 
----
-
-## Troubleshooting
-
-### CI Passes Locally but Fails in GitHub
-
-Check:
-
-- Python version compatibility
-- Missing dependencies
-- Environment-specific configuration
-- Workflow permissions
-
-### Dependabot Not Creating Pull Requests
-
-Check:
-
-- `dependabot.yml` syntax
-- Repository security settings
-- Dependency file locations
-
-### CODEOWNERS Not Working
-
-Check:
-
-- File location is `.github/CODEOWNERS`
-- Usernames are correct
-- Repository permissions allow review assignment
+- Output PII detection
+- Generated response review
+- Data leakage prevention
+- Privacy redaction
 
 ---
 
-## Repository Governance Alignment
+# Assurance Results
 
-This configuration supports governance practices aligned to:
+<img width="1620" height="412" alt="control_effectiveness" src="https://github.com/user-attachments/assets/4fd722c0-0654-4a5a-8a13-98510b397725" />
+
+
+The assurance framework evaluates the effectiveness of governance controls through adversarial testing.
+
+| Metric | Result |
+|----------|----------|
+| Total Tests Executed | 30 |
+| Adversarial Tests | 24 |
+| Control Tests | 6 |
+| Controls Effective | 21 / 24 |
+| Control Effectiveness | **87.5%** |
+| Attack Success Rate | 12.5% |
+| Attacks Resisted | 21 |
+| Attack Successes | 3 |
+| OWASP Coverage | 10 / 10 Categories |
+
+All adversarial outcomes were manually reviewed and documented to provide defensible assurance evidence.
+
+The primary governance metric is **Control Effectiveness**, which measures the proportion of adversarial scenarios successfully resisted by the AI Governance Assurance Framework.
+
+---
+
+# Governance Framework Coverage
+
+## ISO/IEC 42001
+
+The platform evaluates evidence against key Annex A control areas including:
+
+- Policy documentation
+- Governance oversight
+- AI impact assessments
+- Lifecycle management
+- Data lineage and governance
+- Model transparency and documentation
+- Intended-use restrictions
+- Third-party dependency management
+
+## NIST AI Risk Management Framework
+
+Coverage spans all four functions.
+
+### GOVERN
+
+- Governance structures
+- Accountability models
+- Risk management policies
+- Organizational oversight
+
+### MAP
+
+- Context establishment
+- Stakeholder analysis
+- Risk identification
+- Impact assessment
+
+### MEASURE
+
+- Performance monitoring
+- Fairness evaluation
+- Transparency assessment
+- Explainability analysis
+
+### MANAGE
+
+- Risk treatment
+- Incident response
+- Human oversight
+- Escalation mechanisms
+
+## Australian Privacy Principles
+
+The platform maps governance controls to:
+
+- APP 3 – Collection of Personal Information
+- APP 6 – Use and Disclosure of Personal Information
+- APP 10 – Quality of Personal Information
+- APP 11 – Security of Personal Information
+
+---
+
+# Risk Assessment Methodology
+
+Each AI use case is assessed across six independent governance dimensions:
+
+1. Privacy Risk
+2. Security Risk
+3. Bias Risk
+4. Regulatory Risk
+5. Reputational Risk
+6. Operational Risk
+
+Rather than relying on a single aggregated risk score, the platform uses multidimensional assessment to improve governance visibility and support targeted risk treatment decisions.
+
+---
+
+# Representative Use Cases
+
+The platform includes assessments of publicly cited AI systems across government, financial services, and other regulated sectors.
+
+Examples include:
+
+### UC-001
+
+**Digital Transformation Agency (DTA)**
+
+AI-assisted procurement decision support.
+
+### UC-002
+
+**Digital Service Standard (DSS)**
+
+AI disclosure and transparency case study.
+
+### UC-003
+
+**Australian Taxation Office (ATO)**
+
+Tax and superannuation compliance risk differentiation.
+
+### UC-004
+
+**Commonwealth Bank of Australia (CBA)**
+
+Real-time fraud and scam detection.
+
+### UC-005
+
+**BioCatch Cross-Bank Pilot**
+
+Behavioural biometrics-based fraud detection with publicly disclosed governance limitations.
+
+---
+
+# Data & Governance Assets
+
+The platform includes:
+
+- AI Use Case Inventory
+- AI Risk Register
+- Governance Control Library
+- ISO/IEC 42001 Maturity Assessments
+- NIST AI RMF Mappings
+- Privacy Framework Mappings
+- RACI Accountability Assignments
+- Governance Evidence Tracking
+- Assurance Testing Results
+- Control Effectiveness Reporting
+
+---
+
+# Technology Stack
+
+## Platform
+
+- Databricks
+- Unity Catalog
+- Delta Tables
+
+## Languages
+
+- Python
+- SQL
+
+## Governance Tooling
+
+- GitHub
+- GitHub Actions
+- Dependabot
+
+## AI Governance Frameworks
 
 - ISO/IEC 42001
 - NIST AI RMF
-- Change Management
-- Risk Management
-- Assurance Activities
-- Traceability Requirements
+- OWASP Top 10 for LLM Applications (2025)
+- Australian Privacy Principles
 
-The objective is not simply automation, but demonstrating governance-oriented development 
+---
+
+# Repository Structure
+
+```text
+ai_governance/
+├── data/
+├── docs/
+├── images/
+├── notebooks/
+├── scripts/
+├── sql/
+└── tests/
+```
+
+---
+
+# Key Methodological Decisions
+
+## Disclosed vs Inferred Evidence
+
+Public AI governance disclosures vary significantly in maturity and detail.
+
+Each assessment artefact is tagged as:
+
+```text
+disclosed
+```
+
+or
+
+```text
+inferred_by_assessor
+```
+
+This provides transparency regarding what was explicitly evidenced versus what required assessor judgement.
+
+## Manual Assurance Review
+
+Automated determination of attack success can produce unreliable outcomes.
+
+A manual review process was adopted to provide:
+
+- Higher assurance confidence
+- Improved explainability
+- Defensible governance evidence
+- Stronger auditability
+
+---
+
+# Future Roadmap
+
+## Governance Expansion
+
+- Expand from 25 to 50+ assessed AI systems
+- Additional ISO/IEC 42001 maturity assessments
+- Versioned assurance runs
+- Longitudinal governance tracking
+
+## Reporting & Analytics
+
+- Executive dashboards
+- Governance scorecards
+- Control effectiveness trends
+- OWASP coverage analytics
+- Framework traceability analytics
+- Assurance reporting
+
+---
+
+# Portfolio Purpose
+
+This project demonstrates the integration of:
+
+- AI Governance
+- Responsible AI
+- AI Risk Management
+- AI Assurance
+- Regulatory Alignment
+- Governance Framework Mapping
+- Technical AI Control Validation
+
+into a single governance-oriented analytics platform.
+
+The objective is not simply compliance documentation, but the creation of measurable governance evidence, assurance outcomes, and audit-ready decision-support artefacts that support trustworthy AI deployment.
+
+---
+
+# License
+
+MIT License
